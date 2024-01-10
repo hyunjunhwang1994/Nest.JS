@@ -1,0 +1,5 @@
+npm_modules
+.env
+.idea
+*.iml
+.DS_Store
