@@ -1,83 +1,64 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
-
-
-/**
- *  author: string;
- *  title: string;
- *  content: string;
- *  likeCount: number;
- *  commentCount: number;
- */
-
-export interface PostModel {
-    id: number;
-    author: string;
-    title: string;
-    content: string;
-    likeCount: number;
-    commentCount: number;
-}
-
-let posts: PostModel[] = [
-    {
-        id: 1,
-        author: 'newjeans_official',
-        title: '뉴진스 민지',
-        content: '메이크업 하고 있는 민지',
-        likeCount: 1000,
-        commentCount: 999
-    },
-    {
-        id: 2,
-        author: 'newjeans_official',
-        title: '뉴진스 해린',
-        content: '노래 연습 하고 있는 민지',
-        likeCount: 1000,
-        commentCount: 999
-    },
-    {
-        id: 3,
-        author: 'blackping_official',
-        title: '블랙핑크 로제',
-        content: '종합운동장에서 공연 하고 있는 로제',
-        likeCount: 1000,
-        commentCount: 999
-    }
-]
+import {Repository} from "typeorm";
+import {InjectRepository} from "@nestjs/typeorm";
+import {PostsModel} from "./entities/posts.entity";
 
 
 @Injectable()
 export class PostsService {
-    getAllPosts() {
-        return posts
+
+    constructor(
+        @InjectRepository(PostsModel)
+        private readonly postsRepository: Repository<PostsModel>
+    ) {}
+
+    async getAllPosts() {
+        // 특정 조건에 맞추어 여러 개의 데이터를 찾는다.
+        return this.postsRepository.find() // 조건이 없을 경우 모든 데이터를 가지고 온다.
     }
 
-    getPostById(id: number) {
-        const post = posts.find((post) => post.id === +id)
-        if (!post) throw new NotFoundException()
+    async getPostById(id: number) {
+
+        const post = await this.postsRepository.findOne({
+            where:{
+                id:id
+            }
+        }) // 1개의 특정 데이터를 찾는다.
+
+        if(!post) throw new NotFoundException()
         return post;
     }
 
-    createPost(author: string, title: string, content: string) {
-        const post: PostModel = {
-            id: posts[posts.length - 1].id + 1,
+    async createPost(author: string, title: string, content: string) {
+        // 1) create -> 저장할 객체를 생성한다.
+        // 2) save -> 객체를 저장한다. (create 메서드에서 생성한 객체로 저장한다.)
+
+        // 1.DB에 저장할 객체를 만든다.
+        const post = this.postsRepository.create({
             author,
             title,
             content,
             likeCount: 0,
-            commentCount: 0,
-        }
+            commentCount: 0
+        })
 
-        posts = [
-            ...posts,
-            post,
-        ]
+        // 2.실제 데이터베이스에 저장된 정보가 리턴된다.
+        const newPost = await this.postsRepository.save(post)
 
-        return post;
+        return newPost
     }
 
-    updatePost(postId: number, author?: string, title?: string, content?: string) {
-        const post = posts.find(post => post.id === postId)
+    async updatePost(postId: number, author?: string, title?: string, content?: string) {
+
+        // save의 기능
+        // 1) 만약에 데이터가 존재하지 않는다면 (id 기준으로) 새로 생성한다.
+        // 2) 만약에 데이터가 존재한다면 (같은 id의 값이 존재한다면) 존재하던 값을 업데이트한다.
+
+        const post = await this.postsRepository.findOne({
+            where:{
+                id: postId
+            }
+        })
 
         if (!post) throw new NotFoundException()
 
@@ -85,18 +66,22 @@ export class PostsService {
         if (title) post.title = title
         if (content) post.content = content
 
-        posts = posts.map(prevPost => prevPost.id === postId ? post : prevPost)
+        const newPost = await this.postsRepository.save(post)
 
-        return post;
+        return newPost;
 
     }
 
-    deletePost(postId: number) {
-        const post = posts.find((post) => post.id === postId)
+    async deletePost(postId: number) {
+        const post = await this.postsRepository.findOne({
+            where:{
+                id:postId
+            }
+        })
 
         if (!post) throw new NotFoundException()
 
-        posts = posts.filter(post => post.id !== postId)
+        await this.postsRepository.delete(postId)
 
         return postId
     }
