@@ -54,3 +54,6 @@ npx ts-node-dev src/main.ts
 
 localhost:3000/으로 접근해보자.
 
+
+### Controller, Module 분리
+Controller와 Module을 main.ts에서 분리해보자. (코드 참고)

@@ -1,20 +1,5 @@
-import { Controller, Module, Get } from "@nestjs/common";
 import {NestFactory} from "@nestjs/core";
-
-@Controller()
-class AppController {
-    @Get()
-    getRootRoute(){
-        return 'Hi there!'
-    }
-}
-
-// 애플리케이션이 시작될 때마다 Nest는 이 AppModule을 확인하고 나열된 컨트롤러를 찾아 인스턴스를 자동으로 생성한다.
-@Module({
-    controllers: [AppController]
-})
-class AppModule {}
-
+import {AppModule} from "./app.module";
 
 // 시작할 진입점을 만들어준다.
 async function bootstrap() {
