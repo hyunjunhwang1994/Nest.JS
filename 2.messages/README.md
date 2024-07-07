@@ -164,3 +164,53 @@ NestJS는 파라미터(패스), 쿼리 스트링, 헤더, 바디 등을 처리�
 
 messages.controller.ts를 구현하고 API 테스트를 진행해보자. 그러고 서버측 콘솔을 확인해보자. <br/>
 ![img_5.png](img_5.png) <br/>
+
+## Pipe, 요청 데이터 검증하기
+- 요청 데이터가 우리가 원하는 아래의 JSON 데이터와 같은지 검증하고 싶다면? 
+- Nest.JS에서는 Pipe라는 개념이 존재한다. 즉 컨트롤러로 요청이 오기 전에 Pipe에서 데이터를 검증할 수 있다는 것이다.
+```json
+{
+  "content": "hi there"
+}
+```
+
+<br/>
+
+Pipe는 직접 구현할 수도 있지만, 보통 ValidationPipe라는 Nest에 내장된 파이프를 사용할 수 있다.
+
+<br/>
+
+1. 일단, main.ts를 참고하여 app.useGlobalPipes()를 적용시켜 준다. 
+2. 보통 데이터를 담아 레이어를 이동할 때 사용되는 Data Transfer Object, 즉 DTO를 구현해보자.
+3. src/messages/dtos/create-message.dto.ts 파일을 참고해 구현하자.
+   - DTO에서, 검증을 해주는 데코레이터를 사용할 것인데 추가적인 라이브러리를 설치해야 한다. (class-validator)
+   - 추가적으로, class-transformer라는 라이브러리도 설치하자.
+
+
+```shell
+npm install class-validator class-transformer
+```
+
+
+
+<br/>
+
+그리고, messages.controller.ts 파일을 참고하여 아래처럼 body 타입에 CreateMessageDto를 넣어주자.
+```typescript
+@Post()
+createMessages(
+        // Arguments decorator
+        @Body() body: CreateMessageDto
+) {
+  console.log(body)
+}
+```
+
+<br/>
+
+- 그 후에 Post /messages에 대해서 다시 API 테스트를 진행해보자.
+1. content의 value를 number 등 String이 아닌 타입을 넣어보자.
+2. content의 key를 다르게 넣거나, 아예 키를 넣지 말고 요청해보자. 
+
+아래와 같이 400을 응답하며, 서버에서 검증이 진행되고 있다는 것을 알 수 있다. <br/>
+![img_6.png](img_6.png)  <br/>
