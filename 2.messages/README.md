@@ -214,3 +214,51 @@ createMessages(
 
 아래와 같이 400을 응답하며, 서버에서 검증이 진행되고 있다는 것을 알 수 있다. <br/>
 ![img_6.png](img_6.png)  <br/>
+
+
+## ValidationPipe 동작 과정
+서버가 Request를 받게 되면.
+1. Validation Pipe가 요청을 받게 된다.
+   1. class-transformer 패키지를 사용해 요청에 있는 Body 내용을 DTO 클래스의 인스턴스로 변환한다. (create-message.dto.ts)
+   2. class-validator 패키지를 사용해 인스턴스를 실제로 검증하게 된다.
+      - 검증에 오류가 있다면 응답을 즉시 클라이언트에게 반환하고
+      - 검증에 오류가 없다면 컨트롤러 안에 정의한 요청 핸들러에게 해당 요청을 전달한다.
+
+<br/>
+
+- 여기서 한 가지 생각해 봐야 할 부분이 있다. messages.controller.ts에서 body는 엄밀히 말하자면 JSON 형태인데,
+- 특별히 CrateMessageDto 인스턴스로 변환해야 한다는 걸 어떻게 알았을까?
+
+```typescript
+@Post()
+createMessages(@Body() body: CreateMessageDto) {
+    console.log(body)
+}
+```
+
+<br/>
+
+tsconfig.json으로 돌아와서 Nest.js가 동작하려면 아래 2개의 옵션이 중요한데.
+```json
+  "emitDecoratorMetadata": true,
+  "experimentalDecorators": true,
+```
+
+<br/>
+
+- 그중에, emitDecoratorMetadata가 무슨 역할을 하는지 알아볼 필요가 있다.
+- CreateMessageDto라는 타입 정보는 타입 스크립트 -> 자바 스크립트로 변환될 때 사라지지만 emitDecoratorMetadata를 true로 두면 사라지지 않는다.
+
+<br/>
+
+- 그렇다면 실제로 타입 스크립트를 자바 스크립트로 변환된 코드를 확인해 보자. (dist/messages/messages.controller.js)
+- 아래 코드에서 __metadata("design:paramtypes", [create_message_dto_1.CreateMessageDto]), 부분 덕분에 타입 정보가 JavaScript에서도 지속되는 것이다.
+```javascript
+__decorate([
+   (0, common_1.Post)(),
+   __param(0, (0, common_1.Body)()),
+   __metadata("design:type", Function),
+   __metadata("design:paramtypes", [create_message_dto_1.CreateMessageDto]),
+   __metadata("design:returntype", void 0)
+], MessagesController.prototype, "createMessages", null);
+```
