@@ -295,3 +295,7 @@ messages/messages.controller.ts 파일을 생성하고 구현해보자. (해당 
 2. 특정 id를 통해 데이터를 가지고오는 API에 요청할 때 없는 아이디를 입력해도 200 상태 코드를 반환한다.
 
 
+### NotFoundException
+- messages/controller에서 getMessages 라우터에 찾은 메시지가 없을 경우 NotFoundException을 발생시키는 코드를 구현해 보자.
+- 그리고 다시 없는 ID로 요청하여 404가 뜨는 것을 확인해 보자.
+- Nest.js가 편리하게 구현해 놓은 것으로, 분명 throw만 하고, try catch 등을 사용하지 않았음에도 불구하고, 사용자에게 에러메시지를 응답까지 해주는 것을 확인할 수 있다.
