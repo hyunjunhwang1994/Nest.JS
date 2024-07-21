@@ -262,3 +262,36 @@ __decorate([
    __metadata("design:returntype", void 0)
 ], MessagesController.prototype, "createMessages", null);
 ```
+
+<br/>
+
+## Service, Repository
+- Nest CLI에서도 Service와 Repository 생성을 제공하지만, 일단 백지 상태부터 하나씩 구현해보자.
+- src/messages/messages.service.ts, src/messages/messages.repository.ts 파일을 생성한다.
+- 서비스 파일에 있는 모든 것들은 결국은 리포지토리 안에 있는 코드에 의존하게 된다.
+- 리포지토리를 먼저 만들고 그 다음에 서비스를 만들자.
+- 메세지는 드라이브에 파일로 저장하는 형태로 일단은 구현해보자.
+
+
+일단 임시 DB 처럼 사용할 messages.json 파일을 루트디렉터리에 생성하자.
+
+### Repository 구현
+messages/messages.repository.ts 파일을 생성하고 구현해보자. (해당 파일 참고)
+
+### Service 구현
+messages/messages.service.ts 파일을 생성하고 구현해보자. (해당 파일 참고)
+
+### Controller 구현
+messages/messages.controller.ts 파일을 생성하고 구현해보자. (해당 파일 참고)
+
+- Service(Repository 의존)와 Controller(Service 의존)에서 의존하는 클래스를 생성할 때 지금은 생성자에서 수동으로 생성하여 주입해 주고 있지만 추후 의존성 주입 형태로 바꿀 것이다. 
+- 모두 구현 되었다면, request.http에서 테스트해 보자. create를 하고 get을 하면 메시지를 응답하는 것을 확인할 수 있고, messages.json 파일을 확인해 보면 데이터가 생긴 것을 확인할 수 있다.
+
+<br/>
+
+## 문제점
+지금상황에서 문제점들이 있다.
+1. 생성자를 호출하는 부분을 의존성 주입 형태로 바꾸어야 한다.
+2. 특정 id를 통해 데이터를 가지고오는 API에 요청할 때 없는 아이디를 입력해도 200 상태 코드를 반환한다.
+
+
