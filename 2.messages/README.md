@@ -299,3 +299,203 @@ messages/messages.controller.ts 파일을 생성하고 구현해보자. (해당 
 - messages/controller에서 getMessages 라우터에 찾은 메시지가 없을 경우 NotFoundException을 발생시키는 코드를 구현해 보자.
 - 그리고 다시 없는 ID로 요청하여 404가 뜨는 것을 확인해 보자.
 - Nest.js가 편리하게 구현해 놓은 것으로, 분명 throw만 하고, try catch 등을 사용하지 않았음에도 불구하고, 사용자에게 에러메시지를 응답까지 해주는 것을 확인할 수 있다.
+
+# 의존성 주입 (Dependency Injection)
+- 의존성 주입을 사용하는 방법도 좋지만, 단순히 사용 방법보다는 왜 사용하는지에 중점을 두어서 학습해보자.
+
+## 제어 역전의 원칙 Inversion of Control Principle
+- 제어 역전의 원칙에 따르면 재사용 가능한 코드를 가지고 싶으면, 클래스 자체가 자신의 의존성인 인스턴스를 생성하지 않도록 클래스를 작성해야 한다.
+- 해서 현재 service -> repository, controller -> service 구현을 변경해야 하는데 어떻게 해야할까?
+
+
+<br/>
+
+Bad Example (제어 역전 원칙을 따르지 않음)
+```typescript
+export class MessagesService {
+   messagesRepo: MessagesRepository;
+   
+   constructor() {
+    this.messagesRepo = new MessagesRepository();
+   }
+}
+```
+
+<br/>
+
+Better Example
+- MessagesService가 자체적인 의존성을 생성하도록 하는게 아니라, 생성자에 대한 인수로서 의존성을 받도록 설정할 수 있다.
+```typescript
+export class MessagesService {
+   messagesRepo: MessagesRepository;
+   
+   constructor(repo: MessagesRepository) {
+    this.messagesRepo = repo;
+   }
+
+}
+```
+
+<br/>
+
+Best Example
+```typescript
+interface Repository {
+   findOne(id: string);
+   findAll();
+   create(content: string);
+}
+
+export class MessagesService {
+   messagesRepo: Repository;
+   
+   constructor(repo: Repository) {
+    this.messagesRepo = repo;
+   }
+
+}
+```
+
+<br/>
+위처럼 구현했을때의 장점이 무엇일까?
+
+- 유연성 증가(다양한 구현체를 사용할 수 있는 유연한 설계): MessagesService 클래스가 특정 MessagesRepository 클래스에 의존하지 않고, 
+  - 대신 Repository 인터페이스에 의존한다. 이는 코드가 더 유연해지고 재사용 가능해지게 만든다. 
+  - 다양한 구현체를 사용할 수 있기 때문에 의존성 주입을 통해 쉽게 교체할 수 있다.
+- 테스트 용이성(단위 테스트 작성이 쉬워짐): 인터페이스를 사용함으로써 가짜 객체(mock)를 만들어서 MessagesService를 테스트할 수 있다. 
+  - 이는 단위 테스트를 작성할 때 실제 데이터베이스를 사용하지 않아도 되므로 테스트가 더 빠르고 신뢰성이 높아진다.
+- SOLID 원칙 중 DIP (Dependency Inversion Principle)(의존성 역전 원칙(DIP)을 준수): Best 예제는 의존성 역전 원칙을 따른다. 
+  - 이 원칙은 고수준 모듈이 저수준 모듈에 의존해서는 안 되고, 둘 다 추상화에 의존해야 한다는 것이다. 
+  - MessagesService 클래스는 Repository 인터페이스에 의존하므로, 고수준 클래스가 저수준 클래스에 의존하지 않는다.
+- 구현 숨김(구현 세부사항을 숨겨 시스템의 복잡성을 줄임): Repository 인터페이스를 사용함으로써, MessagesService는 MessagesRepository의 내부 구현에 대해 알 필요가 없다. 
+  - 이는 캡슐화를 통해 시스템의 복잡성을 줄여준다.
+
+위의 장점들을 통해 보다 유지보수성과 확장성이 뛰어난 시스템을 만들 수 있다.
+
+<br/>
+
+제어 역전이 멋진 기법이고 항상 어디에서나 사용해야 할 것처럼 이야기 했지만 실제 제어 역전에는 큰 단점이 있다.
+
+<br/>
+
+예를들어 어떠한 비즈니스 로직을 구현한다고 했을 때, 컨트롤러가 필요하고 컨트롤러를 구현하려면 서비스가 필요하고 서비스를 구현하려면 레포지토리가 필요하다. (아래 코드)
+```typescript
+const repo = new MessagesRepository();
+const service = new MessagesService(repo);
+const controller = new MessagesController(service)
+```
+- 즉 제어 역전의 원칙을 이용하려면 컨트롤러를 구현하기 위해 3배많은 코드를 작성해야 한다는 것이다.
+- 그렇다면 하나의 서비스가 여러개의 Repo 의존성을 가지고, 하나의 컨트롤러가 여러개의 service 의존성을 가진다면..?
+- 앱이 복잡성이 증가할수록 엄격히 제어 역전 원칙을 따르면, 코드를 너무 많이 작성해야 하기 때문에 적절치 않다는 것이 명확하다.
+- 그렇다면 이러한 문제를 해결하면서도, 제어 역전을 이용할 수 있도록 하기 위해 우리는 의존성 구입이라는 기법을 도입할 것이다.
+
+의존성 주입은 제어역전을 이용하지만, 컨트롤러를 원할때마다 엄청난 양의 클래스나 인스턴스를 만들지 않아도 된다.
+
+<br/>
+
+## 컨테이너 (Dependency Injection Container, Injector)
+- 의존성 주입이 작동하는데 있어 가장 핵심이 되는 것은 컨테이너이다. 
+- 의존성 주입은 제어 역전 원칙(Inversion of Control Principle)을 구현하면서도, 코드를 더 간결하게 유지하고 의존성을 관리하는 방법이다. 
+- 이를 위해 의존성 주입 컨테이너(Dependency Injection Container)를 사용한다.
+
+
+### 컨테이너의 동작 과정
+1. 애플리케이션 초기화
+   - 새로운 애플리케이션이 시작되면, 자동으로 DI 컨테이너가 생성된다. 이 컨테이너는 애플리케이션 내의 모든 클래스(컨트롤러 제외)를 검사하고, 각 클래스의 의존성을 분석하여 등록하려고 한다.
+2. 의존성 분석
+   - DI 컨테이너는 각 클래스의 생성자나 프로퍼티를 통해 필요한 의존성을 파악한다. 예를 들어, MessagesService 클래스가 MessagesRepository에 의존하고 있다면, DI 컨테이너는 이를 인식한다.
+3. 의존성 주입:
+   - 애플리케이션이 실행될 때, DI 컨테이너는 각 클래스에 필요한 의존성을 주입한다. MessagesService 클래스가 필요할 때, DI 컨테이너는 MessagesRepository 인스턴스를 생성하고 이를 MessagesService 생성자에 주입한다.
+4. 객체 생성 및 주입:
+   - 컨테이너는 각 클래스의 인스턴스를 생성하고, 필요한 의존성을 주입한 뒤 해당 인스턴스를 반환한다. 이를 통해 개발자는 직접 의존성을 관리할 필요 없이, 컨테이너가 자동으로 의존성을 관리하고 주입한다.
+
+- 동작 예제
+예를 들어, 아래와 같은 클래스 구조가 있다고 가정해보자.
+
+```typescript
+interface Repository {
+   findOne(id: string);
+   findAll();
+   create(content: string);
+}
+
+class MessagesRepository implements Repository {
+   findOne(id: string) {
+   // Implementation
+   }
+   findAll() {
+   // Implementation
+   }
+   create(content: string) {
+   // Implementation
+   }
+}
+
+class MessagesService {
+    constructor(private messagesRepo: Repository) {}
+}
+
+class MessagesController {
+    constructor(private messagesService: MessagesService) {}
+}
+```
+의존성 주입 컨테이너가 하는 일은 다음과 같다.
+
+- 애플리케이션이 시작될 때, MessagesRepository, MessagesService, MessagesController 클래스들을 분석한다.
+- MessagesService가 Repository 타입의 의존성을 필요로 한다는 것을 인식한다.
+- MessagesRepository의 인스턴스를 생성하여 MessagesService에 주입한다.
+- MessagesService의 인스턴스를 생성하여 MessagesController에 주입한다.
+- 이 과정을 통해, 개발자는 아래와 같은 코드를 작성할 필요가 없다.
+```typescript
+const repo = new MessagesRepository();
+const service = new MessagesService(repo);
+const controller = new MessagesController(service);
+```
+즉, DI 컨테이너가 이 모든 작업을 자동으로 처리해준다.
+
+<br/>
+
+결론
+- 의존성 주입을 통해 제어 역전 원칙을 따르면서도, 코드의 복잡성을 줄이고 유지보수성을 높일 수 있다. 
+- DI 컨테이너는 애플리케이션의 의존성을 자동으로 관리하여 개발자가 직접 의존성을 관리할 필요 없이, 더 간결하고 효율적인 코드를 작성할 수 있도록 도와준다.
+
+
+# DI로 구현해보자.
+- 그렇다면 현재 우리 코드에서 DI를 사용하여 리팩토링 해보자.
+- messages.service, messages.controller를 참고해서 리팩토링을 한다.
+```typescript
+// messages.service.ts
+constructor(public messagesRepo: MessagesRepository){}
+// messages.controller.ts
+constructor(public messagesService: MessagesService) {}
+```
+- DI 컨테이너에 연결해보자.
+- messages.repository, messages.service 컨테이너에 등록해보자.
+- controller는 직접 컨테이너에 등록할 필요가 없다 -> 컨트롤러는 소비만 하는 클래스이기 때문
+
+```typescript
+// messages.repository.ts 
+@Injectable()
+export class MessagesRepository {
+}
+
+// messages.service.ts
+@Injectable()
+export class MessagesService {
+}
+```
+
+<br/>
+
+- 마지막으로 서비스와 리포지토리 클래스를 모듈의 providers 리스트에 추가해야 한다.
+```typescript
+// messages.module.ts
+@Module({
+   controllers: [MessagesController],
+   // 다른 클래스들을 위해 의존성으로 사용할 수 있는 것들을 정의
+   providers: [MessagesService, MessagesRepository]
+})
+```
+
+구현 후, 여전히 앱이 잘 돌아가는지 API Test를 진행해보자.
+

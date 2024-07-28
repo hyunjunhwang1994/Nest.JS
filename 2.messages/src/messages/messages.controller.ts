@@ -5,11 +5,7 @@ import {MessagesService} from "./messages.service";
 // Class decorator
 @Controller('messages')
 export class MessagesController {
-    messagesService: MessagesService
-
-    constructor() {
-        this.messagesService = new MessagesService()
-    }
+    constructor(public messagesService: MessagesService) {}
 
 
     // Method decorator
